@@ -24,7 +24,7 @@ app.use(cors({
 }));
 app.use(sessionMiddlewear)
 app.use(cookieParser());
-// app.use(express.static('build'));
+app.use(express.static('build'));
 app.use("/public", express.static(path.join(__dirname, 'public')));
 
 
