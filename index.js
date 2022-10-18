@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const path=require('path')
+const path = require('path')
 const http = require('http');
 const { Server } = require('socket.io')
 const cors = require('cors')
@@ -24,7 +24,7 @@ app.use(cors({
 }));
 app.use(sessionMiddlewear)
 app.use(cookieParser());
-app.use(express.static('build'));
+// app.use(express.static('build'));
 app.use("/public", express.static(path.join(__dirname, 'public')));
 
 
@@ -50,25 +50,28 @@ const io = new Server(server, {
         credentials: true,
         methods: ["POST", "PUT", "GET", "OPTIONS", "HEAD"],
     }
-}) 
+})
 
 io.use(wrap(sessionMiddlewear))
 
 
+
 //routers
 app.post('/login', async (req, res) => {
-    
-    //console.log(req.body);
+
     await collectionUser.findOne({ email: req.body.email }).then(async (doc) => {
         if (doc) {
-            // console.log(doc);
             await collectionUser.findOne({ password: req.body.password }, { projection: { firstName: 1, _id: 1, imageUrl: 1 } }).then((doc) => {
                 if (doc) {
                     req.session.user = doc
                     req.session.loginAuth = true
                     res.send({ loginGranted: req.session.loginAuth, user: req.session.user })
+                } else {
+                    res.send({ error: "password" })
                 }
             })
+        } else {
+            res.send({ error: "email" })
         }
     })
 
@@ -89,6 +92,7 @@ app.post('/signup', async (req, res) => {
         }
     })
 })
+
 
 app.get('/auth', (req, res) => {
     if (req.session.loginAuth) {
@@ -126,14 +130,14 @@ app.post('/imageUpdate', async (req, res) => {
             }
             console.log(req.file.path);
             res.send({ imageURL: req.file.path });
-            collectionUser.findOne({_id:req.session.user._id}).then((doc)=>{
+            collectionUser.findOne({ _id: req.session.user._id }).then((doc) => {
                 console.log(doc)
-                if(fs.existsSync(doc.imageUrl)){
+                if (fs.existsSync(doc.imageUrl)) {
                     console.log('file exist')
                     fs.unlinkSync(doc.imageUrl)
-        
+
                 }
-                
+
             })
             collectionUser.findOneAndUpdate({ _id: req.session.user._id }, { $set: { imageUrl: req.file.path } }).then((updatedDoc) => {
                 console.log('image uploaded');
@@ -142,6 +146,30 @@ app.post('/imageUpdate', async (req, res) => {
         });
     }
 })
+
+app.get('/chatpage', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build/index.html'), (err) => {
+        if (err) {
+
+            res.status(500).send(err)
+        }
+    })
+})
+
+app.get('/signup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build/index.html'), (err) => {
+        if (err) {
+
+            res.status(500).send(err)
+        }
+    })
+
+})
+
+
+
+
+
 
 
 
