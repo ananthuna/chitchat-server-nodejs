@@ -12,6 +12,7 @@ const collectionActiveUsers = db.get('activeUsers')
 const { sessionMiddlewear, wrap } = require('./session/sessionMiddlewear')
 const cookieParser = require("cookie-parser");
 const multer = require('multer')
+ObjectId = require('mongodb').ObjectID;
 const port = process.env.PORT || 8080
 
 
@@ -24,7 +25,7 @@ app.use(cors({
 }));
 app.use(sessionMiddlewear)
 app.use(cookieParser());
-// app.use(express.static('build'));
+app.use(express.static('build'));
 app.use("/public", express.static(path.join(__dirname, 'public')));
 
 
@@ -55,9 +56,12 @@ const io = new Server(server, {
 io.use(wrap(sessionMiddlewear))
 
 
-
+let activeUser = {}
+let login = false
 //routers
 app.post('/login', async (req, res) => {
+
+    console.log('login');
 
     await collectionUser.findOne({ email: req.body.email }).then(async (doc) => {
         if (doc) {
@@ -65,7 +69,14 @@ app.post('/login', async (req, res) => {
                 if (doc) {
                     req.session.user = doc
                     req.session.loginAuth = true
+                    login = true
+                    activeUser = {
+                        userName: doc.firstName,
+                        userId: doc._id.toString(),
+                        imageUrl: doc.imageUrl
+                    }
                     res.send({ loginGranted: req.session.loginAuth, user: req.session.user })
+
                 } else {
                     res.send({ error: "password" })
                 }
@@ -108,9 +119,13 @@ app.get('/auth', (req, res) => {
 
 app.get('/logout', async (req, res) => {
     let data = req.session.user
-    await collectionActiveUsers.remove({ userName: data.firstName })
-    req.session.destroy()
-    res.send({ logoutGranted: true })
+    // await collectionActiveUsers.remove({ userName: data.firstName })
+    await collectionActiveUsers.remove({ userId: activeUser.userId }).then((doc) => {
+        login=false
+        req.session.destroy()
+        res.send({ logoutGranted: true })
+    })
+
 })
 
 app.get('/activeUsers', async (req, res) => {
@@ -147,6 +162,27 @@ app.post('/imageUpdate', async (req, res) => {
     }
 })
 
+app.post('/nameUpdate', (req, res) => {
+
+    collectionUser.findOneAndUpdate({ _id: req.session.user._id }, { $set: { firstName: req.body.name } }).
+        then((doc) => {
+            console.log(doc)
+        })
+
+
+
+})
+
+app.get('/delete', (req, res) => {
+    collectionUser.findOneAndDelete({ _id: req.session.user._id }).then((doc) => {
+        collectionActiveUsers.findOneAndDelete({ userId: req.session.user._id }).then((doc) => {
+
+            res.send({ deleteGranted: req.session.loginAuth })
+
+        })
+    })
+})
+
 app.get('/chatpage', (req, res) => {
     res.sendFile(path.join(__dirname, 'build/index.html'), (err) => {
         if (err) {
@@ -175,8 +211,22 @@ app.get('/signup', (req, res) => {
 
 //socket connection
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     console.log(`⚡: ${socket.id} user just connected!`);
+    //console.log(activeUser.userId);
+
+    if (login) {
+        await collectionActiveUsers.findOne({ userId: activeUser.userId }).then(async (doc) => {
+            if (!doc) {
+                await collectionActiveUsers.insert(activeUser).then((doc) => {
+
+                }).catch((err) => {
+                    res.send({ error: err })
+                }).then(() => db.close())
+            }
+        })
+    }
+
     socket.on("private message", ({ content, to, from }) => {
         console.log(content);
         console.log(to);
@@ -187,7 +237,7 @@ io.on('connection', (socket) => {
     socket.on('typing', (data) => socket.broadcast.emit('typingResponse', data))
 
     socket.on('newUser', async (data) => {
-        //console.log(data);
+        console.log(data);
         await collectionActiveUsers.findOne({ userId: data.userId }).then(async (doc) => {
             if (!doc) {
                 await collectionActiveUsers.insert(data).then((doc) => {
@@ -199,9 +249,13 @@ io.on('connection', (socket) => {
         })
     })
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         console.log('🔥: A user disconnected');
-        socket.disconnect();
+        console.log(activeUser);
+        await collectionActiveUsers.remove({ userId: activeUser.userId }).then((doc)=>{
+            socket.disconnect();
+        })
+        
     });
 });
 
