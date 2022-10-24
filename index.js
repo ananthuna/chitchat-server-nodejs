@@ -12,17 +12,16 @@ const collectionActiveUsers = db.get('activeUsers')
 const { sessionMiddlewear, wrap } = require('./session/sessionMiddlewear')
 const cookieParser = require("cookie-parser");
 const multer = require('multer')
-ObjectId = require('mongodb').ObjectID;
 const port = process.env.PORT || 8080
 
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true,
-}));
+// app.use(cors({
+//     origin: 'http://localhost:3000',
+//     credentials: true,
+// }));
 app.use(sessionMiddlewear)
 app.use(cookieParser());
 app.use(express.static('build'));
@@ -107,8 +106,13 @@ app.post('/signup', async (req, res) => {
 
 app.get('/auth', (req, res) => {
     if (req.session.loginAuth) {
-        collectionUser.findOne({ _id: req.session.user._id }, { projection: { firstName: 1, _id: 1, imageUrl: 1 } }).then((Doc) => {
-            req.session.user = Doc
+        collectionUser.findOne({ _id: req.session.user._id }, { projection: { firstName: 1, _id: 1, imageUrl: 1 } }).then((doc) => {
+            req.session.user = doc
+            activeUser = {
+                userName: doc.firstName,
+                userId: doc._id.toString(),
+                imageUrl: doc.imageUrl
+            }
             res.send({ loginGranted: req.session.loginAuth, user: req.session.user })
         })
 
@@ -121,7 +125,7 @@ app.get('/logout', async (req, res) => {
     let data = req.session.user
     // await collectionActiveUsers.remove({ userName: data.firstName })
     await collectionActiveUsers.remove({ userId: activeUser.userId }).then((doc) => {
-        login=false
+        login = false
         req.session.destroy()
         res.send({ logoutGranted: true })
     })
@@ -162,13 +166,17 @@ app.post('/imageUpdate', async (req, res) => {
     }
 })
 
-app.post('/nameUpdate', (req, res) => {
+app.post('/nameUpdate', async (req, res) => {
 
-    collectionUser.findOneAndUpdate({ _id: req.session.user._id }, { $set: { firstName: req.body.name } }).
+    await collectionUser.findOneAndUpdate({ _id: req.session.user._id }, { $set: { firstName: req.body.name } }).
         then((doc) => {
             console.log(doc)
-        })
 
+        })
+    console.log('activeuser');
+    await collectionActiveUsers.findOneAndUpdate({ userId: req.session.user._id },{ $set: { userName: req.body.name } }).then((doc)=>{
+        console.log(doc);
+    })
 
 
 })
@@ -252,10 +260,10 @@ io.on('connection', async (socket) => {
     socket.on('disconnect', async () => {
         console.log('🔥: A user disconnected');
         console.log(activeUser);
-        await collectionActiveUsers.remove({ userId: activeUser.userId }).then((doc)=>{
+        await collectionActiveUsers.remove({ userId: activeUser.userId }).then((doc) => {
             socket.disconnect();
         })
-        
+
     });
 });
 

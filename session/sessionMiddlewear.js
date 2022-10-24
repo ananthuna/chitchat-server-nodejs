@@ -10,7 +10,8 @@ const sessionMiddlewear = session({
         maxAge: 600000,
         path: '/',
         httpOnly: true,
-    }
+    },
+    store:store
 })
 
 const wrap = expressMiddleware => async (socket, next) =>
