@@ -3,7 +3,7 @@ const app = express();
 const path = require('path')
 const http = require('http');
 const { Server } = require('socket.io')
-const cors = require('cors')
+// const cors = require('cors')
 const fs = require('fs');
 const url = 'mongodb+srv://ananthuna:2WjCKPyQDVu9GPxs@cluster0.mpqkryz.mongodb.net/?retryWrites=true&w=majority'; // Connection URL
 const db = require('monk')(url);
@@ -12,7 +12,8 @@ const collectionActiveUsers = db.get('activeUsers')
 const { sessionMiddlewear, wrap } = require('./session/sessionMiddlewear')
 const cookieParser = require("cookie-parser");
 const multer = require('multer')
-const port = process.env.PORT || 8080
+const port = process.env.PORT || 3001
+
 
 
 app.use(express.json());
@@ -55,7 +56,7 @@ const io = new Server(server, {
 io.use(wrap(sessionMiddlewear))
 
 
-let activeUser = {}
+let activeUser = []
 let login = false
 //routers
 app.post('/login', async (req, res) => {
@@ -69,11 +70,7 @@ app.post('/login', async (req, res) => {
                     req.session.user = doc
                     req.session.loginAuth = true
                     login = true
-                    activeUser = {
-                        userName: doc.firstName,
-                        userId: doc._id.toString(),
-                        imageUrl: doc.imageUrl
-                    }
+                    
                     res.send({ loginGranted: req.session.loginAuth, user: req.session.user })
 
                 } else {
@@ -108,11 +105,7 @@ app.get('/auth', (req, res) => {
     if (req.session.loginAuth) {
         collectionUser.findOne({ _id: req.session.user._id }, { projection: { firstName: 1, _id: 1, imageUrl: 1 } }).then((doc) => {
             req.session.user = doc
-            activeUser = {
-                userName: doc.firstName,
-                userId: doc._id.toString(),
-                imageUrl: doc.imageUrl
-            }
+            
             res.send({ loginGranted: req.session.loginAuth, user: req.session.user })
         })
 
@@ -123,7 +116,7 @@ app.get('/auth', (req, res) => {
 
 app.get('/logout', async (req, res) => {
     let data = req.session.user
-    // await collectionActiveUsers.remove({ userName: data.firstName })
+    await collectionActiveUsers.remove({ userName: data.firstName })
     await collectionActiveUsers.remove({ userId: activeUser.userId }).then((doc) => {
         login = false
         req.session.destroy()
@@ -174,7 +167,7 @@ app.post('/nameUpdate', async (req, res) => {
 
         })
     console.log('activeuser');
-    await collectionActiveUsers.findOneAndUpdate({ userId: req.session.user._id },{ $set: { userName: req.body.name } }).then((doc)=>{
+    await collectionActiveUsers.findOneAndUpdate({ userId: req.session.user._id }, { $set: { userName: req.body.name } }).then((doc) => {
         console.log(doc);
     })
 

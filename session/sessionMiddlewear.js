@@ -7,7 +7,7 @@ const store = new MongoDBSessionStore({
 const sessionMiddlewear = session({
     secret: "keyvalue42",
     cookie: {
-        maxAge: 600000,
+        maxAge: 60000000,
         path: '/',
         httpOnly: true,
     },
