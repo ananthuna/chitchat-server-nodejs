@@ -7,10 +7,15 @@ const cors = require('cors')
 const fs = require('fs');
 const cookieParser = require("cookie-parser");
 const multer = require('multer')
-const port = 3000
+const port = 3001
+// const option = {
+//     origin: "http://localhost:3000",
+//     credentials: true,
+//     methods: ["POST", "PUT", "GET", "OPTIONS", "HEAD"],
+// }
 
 
-
+// app.use(cors(option))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -35,13 +40,7 @@ const upload = multer({ storage: storage }).single('file')
 
 
 //socket connection
-const io = new Server(server, {
-    cors: {
-        origin: "",
-        credentials: true,
-        methods: ["POST", "PUT", "GET", "OPTIONS", "HEAD"],
-    }
-})
+const io = new Server(server, { cors: { origin: '*' } })
 
 
 let activeUser = [{ Name: 'Manu', Genter: 'male', imageURL: '' }]
@@ -64,9 +63,9 @@ app.post('/logout', async (req, res) => {
     const array = activeUser.filter(item => item.Name !== req.body.Name)
     activeUser = [...array]
     console.log(activeUser);
-    
+
     res.send({ logoutGranted: true })
-    
+
 
 })
 
@@ -171,16 +170,17 @@ io.on('connection', async (socket) => {
     // }
 
     socket.on("private message", ({ message, to, from }) => {
-        console.log(message);
-        console.log(to);
-        console.log(from);
+        console.log(message + ';' + from + ';' + to)
         io.emit(from, { message, from, to })
+        console.log('emit from');
         io.emit(to, { message, from, to })
+        console.log('emit to');
     });
 
     socket.on('typing', ({ type, to }) => {
-        socket.emit(`type${to}`, { type })
-        console.log('typing...' + type)
+        io.emit(`type${to}`, { type })
+        // console.log(to+':typing...' + type)
+        // console.log(`type${to}`);
     })
 
 
@@ -190,7 +190,7 @@ io.on('connection', async (socket) => {
         const oldUser = activeUser.find((item) => item.Name === data.Name)
         if (!oldUser) activeUser.push(Data)
         socket.emit('activeUser', activeUser)
-        
+
     })
 
     socket.on('disconnect', async () => {
