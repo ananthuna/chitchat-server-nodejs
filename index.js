@@ -7,15 +7,15 @@ const cors = require('cors')
 const fs = require('fs');
 const cookieParser = require("cookie-parser");
 const multer = require('multer')
-const port = 3001
-// const option = {
-//     origin: "http://localhost:3000",
-//     credentials: true,
-//     methods: ["POST", "PUT", "GET", "OPTIONS", "HEAD"],
-// }
+const port = 3000
+const option = {
+    origin: "http://localhost:3000",
+    credentials: true,
+    methods: ["POST", "PUT", "GET", "OPTIONS", "HEAD"],
+}
 
 
-// app.use(cors(option))
+app.use(cors(option))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -179,19 +179,21 @@ io.on('connection', async (socket) => {
 
     socket.on('typing', ({ type, to }) => {
         io.emit(`type${to}`, { type })
-        // console.log(to+':typing...' + type)
-        // console.log(`type${to}`);
     })
 
 
-    socket.on('newUser', async (data) => {
-        console.log('newUser');
-        let Data = { ...data, socketID: socket.id }
-        const oldUser = activeUser.find((item) => item.Name === data.Name)
-        if (!oldUser) activeUser.push(Data)
-        socket.emit('activeUser', activeUser)
+    socket.on('newUser', (data) => {
+        // console.log('newUser');
+        if (data) {
+            let Data = { ...data, socketID: socket.id }
+            const oldUser = activeUser.find((item) => item.Name === data.Name)
+            if (!oldUser) activeUser.push(Data)
+        }
+        io.emit('activeUser', activeUser)
 
     })
+
+    socket.on('newMsg', (data) => console.log(data))
 
     socket.on('disconnect', async () => {
         console.log('🔥: A user disconnected');
