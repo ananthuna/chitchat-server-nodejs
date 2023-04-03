@@ -43,7 +43,7 @@ const upload = multer({ storage: storage }).single('file')
 const io = new Server(server, { cors: { origin: '*' } })
 
 
-let activeUser = [{ Name: 'Manu', Genter: 'male', imageURL: '' }]
+let activeUser = [{ Name: 'Manu', Genter: 'male', imageURL: 'https://www.shutterstock.com/image-vector/face-expression-handsome-young-man-260nw-1751161418.jpg' }]
 let login = false
 //routers
 app.post('/login', async (req, res) => {
