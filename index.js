@@ -7,7 +7,7 @@ const cors = require('cors')
 const fs = require('fs');
 const cookieParser = require("cookie-parser");
 const multer = require('multer')
-const port = 3000
+const port = 3000n
 const option = {
     origin: "http://localhost:3000",
     credentials: true,
@@ -72,29 +72,24 @@ app.post('/logout', async (req, res) => {
 
 
 // app.post('/imageUpdate', async (req, res) => {
-//     console.log('image uploading');
-//     if (req.session.loginAuth) {
-//         await upload(req, res, async (err) => {
-//             if (err) {
-//                 res.sendStatus(500);
-//             }
-//             console.log(req.file.path);
-//             res.send({ imageURL: req.file.path });
-//             await collectionUser.findOne({ _id: req.session.user._id }).then((doc) => {
-//                 console.log(doc)
-//                 if (fs.existsSync(doc.imageUrl)) {
-//                     console.log('file exist')
-//                     fs.unlinkSync(doc.imageUrl)
+    // console.log('image uploading');
 
-//                 }
+    // await upload(req, res, async (err) => {
+        // if (err) {
+            // res.sendStatus(500);
+        // }
+        // console.log(req);
+        // activeUser.forEach((each, i) => {
+        //     if(each.)
+        // })
+        // res.send({ imageURL: req.file.path });
 
-//             })
-//             await collectionUser.findOneAndUpdate({ _id: req.session.user._id }, { $set: { imageUrl: req.file.path } }).then(async (updatedDoc) => {
-//                 console.log('image uploaded');
-//                 await collectionActiveUsers.findOneAndUpdate({ userId: req.session.user._id }, { $set: { imageUrl: req.file.path } })
-//             })
-//         });
-//     }
+        // if (fs.existsSync(doc.imageUrl)) {
+        //     console.log('file exist')
+        //     fs.unlinkSync(doc.imageUrl)
+
+        // }
+    // });
 // })
 
 // app.post('/nameUpdate', async (req, res) => {
@@ -169,12 +164,9 @@ io.on('connection', async (socket) => {
     //     })
     // }
 
-    socket.on("private message", ({ message, to, from }) => {
-        console.log(message + ';' + from + ';' + to)
-        io.emit(from, { message, from, to })
-        console.log('emit from');
-        io.emit(to, { message, from, to })
-        console.log('emit to');
+    socket.on("private message", (data) => {
+        io.emit(data.from, data)
+        io.emit(data.to, data)
     });
 
     socket.on('typing', ({ type, to }) => {
