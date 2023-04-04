@@ -23,7 +23,6 @@ app.use(cookieParser());
 app.use(express.static('build'));
 app.use("/public", express.static(path.join(__dirname, 'public')));
 
-
 const server = http.createServer(app);
 
 
